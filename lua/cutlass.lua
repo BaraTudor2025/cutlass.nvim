@@ -14,6 +14,9 @@ local function with_defaults(options)
     cut_key = options.cut_key or nil,
     override_del = options.override_del or nil,
     exclude = options.exclude and flip(options.exclude) or {},
+    change_register = '"'..(options.change_register or '_'), -- c/C
+    delete_register = '"'..(options.delete_register or '_'), -- d/D
+    select_register = '"'..(options.select_register or '_'), -- select-mode
   }
 end
 
@@ -29,10 +32,18 @@ function cutlass.setup(options)
 end
 
 function cutlass.override_delete_and_change_bindings()
+  local opts = cutlass.options
   for _, mode in pairs({ "x", "n" }) do
     for _, lhs in pairs({ "c", "C", "s", "S", "d", "D", "x", "X" }) do
-      if not cutlass.options.exclude[mode .. lhs] and vim.fn.maparg(lhs, mode) == "" then
-        map(mode, lhs, '"_' .. lhs, keymap_opts)
+      if not opts.exclude[mode .. lhs] and vim.fn.maparg(lhs, mode) == "" then
+        local reg = '"_'
+        if lhs == "c" or lhs == "C" then
+          reg = opts.change_register
+        end
+        if lhs == "d" or lhs == "D" then
+          reg = opts.delete_register
+        end
+        map(mode, lhs, reg .. lhs, keymap_opts)
       end
     end
   end
@@ -45,19 +56,20 @@ end
 
 function cutlass.override_select_bindings()
   -- Add a map for every printable character to copy to black hole register
+  local reg = cutlass.options.select_register
   for char_nr = 33, 126 do
     local char = vim.fn.nr2char(char_nr)
     if not cutlass.options.exclude["s" .. char] then
-      map("s", char, '<c-o>"_c' .. char == "\\" and "\\\\" or char, keymap_opts)
+      map("s", char, '<c-o>'..reg..'c' .. char == "\\" and "\\\\" or char, keymap_opts)
     end
   end
 
   if not cutlass.options.exclude["s<bs>"] then
-    map("s", "<bs>", '<c-o>"_c', keymap_opts)
+    map("s", "<bs>", '<c-o>'..reg..'c', keymap_opts)
   end
 
   if not cutlass.options.exclude["s<space>"] then
-    map("s", "<space>", '<c-o>"_c<space>', keymap_opts)
+    map("s", "<space>", '<c-o>'..reg..'c<space>', keymap_opts)
   end
 end
 
