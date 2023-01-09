@@ -14,9 +14,7 @@ local function with_defaults(options)
     cut_key = options.cut_key or nil,
     override_del = options.override_del or nil,
     exclude = options.exclude and flip(options.exclude) or {},
-    change_register = '"'..(options.change_register or '_'), -- c/C
-    delete_register = '"'..(options.delete_register or '_'), -- d/D
-    select_register = '"'..(options.select_register or '_'), -- select-mode
+    select_register = (options.select_register or '_'), -- select-mode
   }
 end
 
@@ -33,17 +31,12 @@ end
 
 function cutlass.override_delete_and_change_bindings()
   local opts = cutlass.options
+
   for _, mode in pairs({ "x", "n" }) do
-    for _, lhs in pairs({ "c", "C", "s", "S", "d", "D", "x", "X" }) do
+    for _, lhs in pairs({ "c", "C", "d", "D", "x", "X" }) do
       if not opts.exclude[mode .. lhs] and vim.fn.maparg(lhs, mode) == "" then
-        local reg = '"_'
-        if lhs == "c" or lhs == "C" then
-          reg = opts.change_register
-        end
-        if lhs == "d" or lhs == "D" then
-          reg = opts.delete_register
-        end
-        map(mode, lhs, reg .. lhs, keymap_opts)
+        local reg = '"'..lhs:lower()
+        map(mode, lhs, reg..lhs, keymap_opts)
       end
     end
   end
@@ -56,11 +49,11 @@ end
 
 function cutlass.override_select_bindings()
   -- Add a map for every printable character to copy to black hole register
-  local reg = cutlass.options.select_register
+  local reg = '"'..cutlass.options.select_register
   for char_nr = 33, 126 do
     local char = vim.fn.nr2char(char_nr)
     if not cutlass.options.exclude["s" .. char] then
-      map("s", char, '<c-o>'..reg..'c' .. char == "\\" and "\\\\" or char, keymap_opts)
+      map("s", char, '<c-o>'..reg..'c'..(char == "\\" and "\\\\" or char), keymap_opts)
     end
   end
 
